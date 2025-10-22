@@ -1,0 +1,87 @@
+/* Normalize autofill colors so inputs don't look disabled */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #111827; /* gray-900 */
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset;
+  transition: background-color 9999s ease-in-out 0s;
+  caret-color: #111827;
+}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ Accessible global theme using RGB variables to compose alpha-friendly colors.
+ WCAG-friendly contrasts and a modern brand gradient.
+*/
+
+@layer base {
+  :root {
+    /* Brand in RGB for use with rgb(var(--color) / <alpha-value>) */
+    --brand-50: 238 242 255; /* Indigo-50 */
+    --brand-100: 224 231 255;
+    --brand-200: 199 210 254;
+    --brand-300: 165 180 252;
+    --brand-400: 129 140 248;
+    --brand-500: 99 102 241;  /* Primary */
+    --brand-600: 79 70 229;
+    --brand-700: 67 56 202;
+    --brand-800: 55 48 163;
+    --brand-900: 49 46 129;
+
+    /* Accent (Violet) */
+    --accent-500: 139 92 246;
+
+    /* Semantic */
+    --success-500: 16 185 129; /* emerald-500 */
+    --warning-500: 245 158 11; /* amber-500 */
+    --danger-500: 239 68 68;   /* red-500 */
+
+    /* Neutral */
+    --bg-50: 249 250 251;      /* gray-50 */
+    --bg-100: 243 244 246;     /* gray-100 */
+    --fg-900: 17 24 39;        /* gray-900 */
+    --fg-600: 75 85 99;        /* gray-600 */
+    --ring: var(--brand-500);
+  }
+
+  html { color: rgb(var(--fg-900)); background-color: rgb(var(--bg-50)); }
+
+  ::selection { background: rgb(var(--brand-500) / 0.18); }
+
+  /* Dark mode base */
+  .dark {
+    color: rgb(229 231 235);
+    background-color: rgb(10 10 10);
+  }
+}
+
+@layer components {
+  /* Card */
+  .card {
+    @apply rounded-xl border border-gray-100 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    background-color: rgb(var(--brand-600));
+    color: #fff;
+    @apply inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition dark:bg-emerald-600;
+  }
+  .btn-primary:hover { background-color: rgb(var(--brand-500)); }
+  .btn-primary:focus { outline: 2px solid rgb(var(--brand-500)); outline-offset: 2px; }
+
+  /* Brand gradient block */
+  .brand-gradient {
+    background-image: linear-gradient(90deg, rgb(var(--brand-600)), rgb(var(--accent-500)));
+  }
+
+  /* Focus ring utility for inputs */
+  .ring-brand:focus {
+    box-shadow: 0 0 0 3px rgb(var(--ring) / 0.35);
+    border-color: rgb(var(--brand-500));
+  }
+}
