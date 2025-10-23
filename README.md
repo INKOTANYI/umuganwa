@@ -1,3 +1,54 @@
+# Umuganwa – Rwanda Job Portal
+
+A modern job portal for Rwanda with candidate profiles, applications, admin dashboard, and document uploads.
+
+## Stack
+
+- **Backend**: Laravel + Inertia
+- **Frontend**: React + Vite + TailwindCSS
+- **DB**: MySQL (local dev can use SQLite for quick start)
+- **Auth**: Laravel Breeze style (email/password)
+
+## Features
+
+- Candidate profile completion with location hierarchy (provinces/districts/sectors)
+- Job listings with search and filters
+- Applications with motivation and documents (CV, degree, certificates)
+- Admin dashboard for users, companies, jobs, and applications
+- Application status workflow with in-app notifications
+
+## Quick start (local)
+
+```bash
+# 1) Install dependencies
+composer install
+npm install
+
+# 2) Environment
+cp .env.example .env
+php artisan key:generate
+
+# Configure DB in .env (MySQL recommended) and run:
+php artisan migrate
+
+# 3) Storage symlink for documents
+php artisan storage:link
+
+# 4) Run dev servers
+php artisan serve   # http://127.0.0.1:8000
+npm run dev         # Vite assets
+```
+
+If using XAMPP/Apache, point the virtual host to `public/`.
+
+## Notes
+
+- File uploads default limit is ~5MB per file in UI; adjust PHP `upload_max_filesize` and `post_max_size` if needed.
+- Applications table: `job_applications` with unique `(user_id, job_id)` and status fields.
+- Admin area: `/admin` (requires an admin user in `users.is_admin`).
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
