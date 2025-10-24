@@ -12,13 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
-use App\Models\User as AppUser;
-use App\Notifications\OtpCodeNotification;
-use Illuminate\Support\Str;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
+
 
 class RegisteredUserController extends Controller
 {
@@ -56,36 +50,10 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        // Generate a 6-digit OTP
-        $code = str_pad(strval(random_int(0, 999999)), 6, '0', STR_PAD_LEFT);
-        $expiresAt = now()->addMinutes(10);
+        // Log in the user immediately and redirect to profile completion
+        Auth::login($user);
 
-        DB::table('otp_codes')->insert([
-            'user_id' => $user->id,
-            'code' => $code,
-            'channel' => 'email',
-            'sent_to' => $user->email,
-            'expires_at' => $expiresAt,
-            'used_at' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        // In local, show OTP on UI (flash to session). In production, send via email only.
-        if (app()->environment('local')) {
-            Session::flash('dev_otp_code', $code);
-        } else {
-            try {
-                $user->notify(new OtpCodeNotification($code));
-            } catch (\Throwable $e) {
-                Log::warning('Failed to send OTP email: '.$e->getMessage());
-            }
-        }
-
-        // Store pending user id in session and redirect to OTP verification
-        Session::put('pending_user_id', $user->id);
-
-        return redirect()->route('otp.verify.show');
+        return redirect()->route('profile.complete.show');
     }
 }
 
