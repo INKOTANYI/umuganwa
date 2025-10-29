@@ -10,7 +10,7 @@ import { useI18n } from '@/i18n/Translator.jsx';
 export default function CompleteProfile({ prefill, provinces, departments }) {
     const { errors } = usePage().props;
     const { t } = useI18n();
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
 
     const [editingIdentity, setEditingIdentity] = useState(true);
     const [districts, setDistricts] = useState([]);
@@ -167,10 +167,10 @@ export default function CompleteProfile({ prefill, provinces, departments }) {
     const onSubmit = (e) => {
         e.preventDefault();
         console.info('[CompleteProfile] Submit start');
-        transform((d) => d);
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        transform((d) => ({ ...d, _token: csrf }));
         post(route('profile.complete.store'), {
             forceFormData: true,
-            headers: csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {},
             onSuccess: () => console.info('[CompleteProfile] Submit success'),
             onError: (errs) => console.error('[CompleteProfile] Submit errors', errs),
             onFinish: () => console.info('[CompleteProfile] Submit finish'),

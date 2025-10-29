@@ -204,14 +204,24 @@ Route::get('/api/public/jobs/{job}', function($jobId) {
     return response()->json($row);
 })->name('api.public.jobs.show');
 
-// Create application (AJAX, requires auth)
+// Create application (AJAX, requires auth + completed profile)
 Route::post('/api/applications', function() {
     if (!Auth::check()) {
         return response()->json(['message' => 'Unauthenticated'], 401);
     }
     $appsTable = Schema::hasTable('applications') ? 'applications' : (Schema::hasTable('job_applications') ? 'job_applications' : null);
     if (!$appsTable) { return response()->json(['message' => 'Applications table not found'], 500); }
+
+    // Enforce completed profile
+    if (!Schema::hasTable('candidate_profiles')) {
+        return response()->json(['message' => 'Profile feature not available'], 500);
+    }
     $user = Auth::user();
+    $hasProfile = DB::table('candidate_profiles')->where('user_id', $user->id)->exists();
+    if (!$hasProfile) {
+        return response()->json(['message' => 'Complete your profile before applying'], 403);
+    }
+
     $jobId = request('job_id');
     $motivation = request('motivation');
     if (!$jobId || !is_string($motivation)) {
@@ -260,6 +270,41 @@ Route::middleware('auth')->group(function () {
     // Profile completion
     Route::get('/profile/complete', [ProfileCompletionController::class, 'show'])->name('profile.complete.show');
     Route::post('/profile/complete', [ProfileCompletionController::class, 'store'])->name('profile.complete.store');
+
+    // My Applications (user-facing)
+    Route::get('/applications', function () {
+        return Inertia::render('Applications/My');
+    })->name('applications.my');
+
+    Route::get('/api/my/applications', function () {
+        if (!Schema::hasTable('job_applications')) {
+            return response()->json(['data' => [], 'total' => 0, 'links' => []]);
+        }
+        $userId = Auth::id();
+        $per = (int) request('per_page', 10);
+        $q = request('q');
+        $qb = DB::table('job_applications')
+            ->leftJoin('job_listings','job_listings.id','=','job_applications.job_id')
+            ->leftJoin('companies','companies.id','=','job_listings.company_id')
+            ->where('job_applications.user_id', $userId)
+            ->when($q, function($w) use ($q) {
+                $w->where(function($sub) use ($q){
+                    $sub->where('job_listings.title','like',"%{$q}%")
+                        ->orWhere('companies.title','like',"%{$q}%");
+                });
+            })
+            ->select(
+                'job_applications.id',
+                'job_applications.created_at',
+                'job_applications.status',
+                'job_listings.id as job_id',
+                'job_listings.title as job_title',
+                DB::raw('COALESCE(companies.title, "") as company_title')
+            )
+            ->latest('job_applications.id');
+        $rows = $qb->paginate($per);
+        return response()->json($rows);
+    })->name('api.my.applications');
 
     // Dependent locations
     Route::get('/locations/districts', [LocationsController::class, 'districts'])->name('locations.districts');
@@ -377,12 +422,13 @@ Route::middleware('auth')->group(function () {
             return response()->json($rows);
         })->name('api.applications');
 
-        // Update application status and notify user
+        // Update application status and notify user (with optional reason)
         Route::post('/applications/{application}/status', function ($applicationId) {
             if (!Schema::hasTable('job_applications')) {
                 return response()->json(['message' => 'Applications table not found'], 500);
             }
             $status = request('status');
+            $reason = (string) request('reason', '');
             $allowed = ['pending','selected','approved','rejected'];
             if (!in_array($status, $allowed, true)) {
                 return response()->json(['message' => 'Invalid status'], 422);
@@ -403,7 +449,7 @@ Route::middleware('auth')->group(function () {
             if ($user && $job) {
                 try {
                     $uModel = \App\Models\User::find($user->id);
-                    $uModel?->notify(new ApplicationStatusUpdated($job->title, $status, (string) $applicationId));
+                    $uModel?->notify(new ApplicationStatusUpdated($job->title, $status, (string) $applicationId, $reason ?: null));
                 } catch (\Throwable $e) {}
             }
 

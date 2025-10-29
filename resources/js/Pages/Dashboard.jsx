@@ -8,20 +8,24 @@ export default function Dashboard() {
     const { t } = useI18n();
     const profile = props.profile || props.candidateProfile || props.user?.candidate_profile || {};
     const [unreadCount, setUnreadCount] = useState(0);
-    const [items, setItems] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [totalNotif, setTotalNotif] = useState(0);
 
     useEffect(() => {
         let stopped = false;
-        const fetchCount = async () => {
-            try { const r = await fetch(route('notifications.unread_count')); const j = await r.json(); if (!stopped) setUnreadCount(j.count || 0); } catch {}
+        const fetchCounts = async () => {
+            try {
+                const r1 = await fetch(route('notifications.unread_count'));
+                const j1 = await r1.json();
+                if (!stopped) setUnreadCount(j1.count || 0);
+            } catch {}
+            try {
+                const r2 = await fetch(route('notifications.list') + '?limit=50');
+                const j2 = await r2.json();
+                if (!stopped) setTotalNotif(Array.isArray(j2.items) ? j2.items.length : 0);
+            } catch {}
         };
-        const fetchList = async () => {
-            try { setLoading(true); const r = await fetch(route('notifications.list') + '?limit=5'); const j = await r.json(); if (!stopped) setItems(Array.isArray(j.items) ? j.items : []); } catch {} finally { setLoading(false); }
-        };
-        fetchCount();
-        fetchList();
-        const id = setInterval(() => { fetchCount(); }, 15000);
+        fetchCounts();
+        const id = setInterval(fetchCounts, 15000);
         return () => { stopped = true; clearInterval(id); };
     }, []);
 
@@ -62,7 +66,7 @@ export default function Dashboard() {
             <Head title="Dashboard" />
 
             <div className="py-10">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px=4 sm:px-6 lg:px-8">
                     <div className="card mb-4 p-5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -96,36 +100,6 @@ export default function Dashboard() {
                             <div className="h-2 bg-emerald-600" style={{ width: `${completion.pct}%` }} />
                         </div>
                     </div>
-
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="group card p-5 ring-1 ring-transparent transition hover:shadow-md hover:ring-emerald-100">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-sky-50 text-sky-600 transition group-hover:bg-sky-100">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6"><path d="M12 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 005 15h14a1 1 0 00.707-1.707L18 11.586V8a6 6 0 00-6-6zm0 20a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-base font-semibold text-gray-900">Notifications</h4>
-                                        <div className="text-sm text-gray-500">Unread: {unreadCount}</div>
-                                    </div>
-                                </div>
-                                <button onClick={async()=>{ try { await fetch(route('notifications.mark_all'), { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]').getAttribute('content') } }); setUnreadCount(0); } catch {} }} className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50">Mark all</button>
-                            </div>
-                            <div className="mt-4 divide-y divide-gray-100">
-                                {loading && (<div className="py-2 text-sm text-gray-500">Loading…</div>)}
-                                {!loading && items.length === 0 && (<div className="py-2 text-sm text-gray-500">No notifications</div>)}
-                                {!loading && items.map(n => (
-                                    <div key={n.id} className="py-2 text-sm">
-                                        <div className="font-medium text-gray-900">{n.data?.title || n.type}</div>
-                                        <div className="text-gray-600">{n.data?.message}</div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="mt-3 text-right">
-                                <button onClick={async()=>{ try { const r = await fetch(route('notifications.list') + '?limit=5'); const j = await r.json(); setItems(Array.isArray(j.items) ? j.items : []); } catch {} }} className="text-xs text-emerald-600 hover:underline">Refresh</button>
-                            </div>
-                        </div>
-                    </div>
                     <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                         <Link href={route('profile.edit')} className="group card p-5 ring-1 ring-transparent transition hover:shadow-md hover:ring-emerald-100">
                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 transition group-hover:bg-indigo-100">
@@ -135,7 +109,7 @@ export default function Dashboard() {
                             <p className="mt-1 text-sm text-gray-500">{t('dashboard.cards.profile.desc')}</p>
                         </Link>
 
-                        <Link href={route('dashboard')} className="group card p-5 ring-1 ring-transparent transition hover:shadow-md hover:ring-emerald-100">
+                        <Link href={route('jobs.index')} className="group card p-5 ring-1 ring-transparent transition hover:shadow-md hover:ring-emerald-100">
                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 transition group-hover:bg-emerald-100">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6"><path d="M3 5h18v2H3V5Zm0 6h18v2H3v-2Zm0 6h18v2H3v-2Z"/></svg>
                             </div>
@@ -143,7 +117,7 @@ export default function Dashboard() {
                             <p className="mt-1 text-sm text-gray-500">{t('dashboard.cards.browse.desc')}</p>
                         </Link>
 
-                        <Link href={route('dashboard')} className="group card p-5 ring-1 ring-transparent transition hover:shadow-md hover:ring-emerald-100">
+                        <Link href={route('applications.my')} className="group card p-5 ring-1 ring-transparent transition hover:shadow-md hover:ring-emerald-100">
                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition group-hover:bg-amber-100">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6"><path d="M4 4h16v2H4V4Zm0 4h10v2H4V8Zm0 4h16v2H4v-2Zm0 4h10v2H4v-2Z"/></svg>
                             </div>
@@ -151,13 +125,13 @@ export default function Dashboard() {
                             <p className="mt-1 text-sm text-gray-500">{t('dashboard.cards.applications.desc')}</p>
                         </Link>
 
-                        <Link href={route('dashboard')} className="group card p-5 ring-1 ring-transparent transition hover:shadow-md hover:ring-emerald-100">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-50 text-pink-600 transition group-hover:bg-pink-100">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"/></svg>
+                        <div className="group card p-5 ring-1 ring-transparent transition hover:shadow-md hover:ring-emerald-100">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-sky-50 text-sky-600 transition group-hover:bg-sky-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6"><path d="M12 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 005 15h14a1 1 0 00.707-1.707L18 11.586V8a6 6 0 00-6-6zm0 20a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
                             </div>
-                            <h4 className="mt-4 text-base font-semibold text-gray-900">{t('dashboard.cards.post.title')}</h4>
-                            <p className="mt-1 text-sm text-gray-500">{t('dashboard.cards.post.desc')}</p>
-                        </Link>
+                            <h4 className="mt-4 text-base font-semibold text-gray-900">Notifications</h4>
+                            <p className="mt-1 text-sm text-gray-500">Total: {totalNotif} • Unread: {unreadCount}</p>
+                        </div>
                     </div>
                 </div>
             </div>

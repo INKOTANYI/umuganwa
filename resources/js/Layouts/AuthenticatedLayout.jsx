@@ -23,6 +23,8 @@ export default function AuthenticatedLayout({ header, children }) {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [dark, setDark] = useState(false);
     const [supportOpen, setSupportOpen] = useState(false);
+    const [notifViewOpen, setNotifViewOpen] = useState(false);
+    const [notifViewContent, setNotifViewContent] = useState({ title: '', message: '' });
 
     useEffect(() => {
         setShowSuccess(!!flash?.success);
@@ -69,6 +71,11 @@ export default function AuthenticatedLayout({ header, children }) {
     const openNotif = async () => {
         setNotifOpen((v) => !v);
         if (!notifOpen) await fetchList();
+    };
+
+    const openNotifModal = (n) => {
+        setNotifViewContent({ title: n?.data?.title || '', message: n?.data?.message || '' });
+        setNotifViewOpen(true);
     };
 
     const markAllRead = async () => {
@@ -137,7 +144,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     <Link
                         href={route('dashboard')}
                         aria-current={route().current('dashboard') ? 'page' : undefined}
-                        className={`group flex items-center gap-3 rounded-md px-3 py-2 transition ${route().current('dashboard') ? 'bg-emerald-800/90 text-white border-l-4 border-emerald-400 -ml-3 pl-5 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]' : 'text-emerald-50/90 hover:bg-emerald-800'}`}
+                        className={`group flex items-center gap-3 rounded-md px-3 py-2 transition ${route().current('dashboard') ? 'bg-emerald-800/90 text-white ring-1 ring-emerald-400/20' : 'text-emerald-50/90 hover:bg-emerald-800'}`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 opacity-90"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2V10z"/></svg>
                         <span>{t('nav.dashboard')}</span>
@@ -145,7 +152,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     <Link
                         href={route('candidate.profile.show')}
                         aria-current={route().current('candidate.profile.show') ? 'page' : undefined}
-                        className={`group flex items-center gap-3 rounded-md px-3 py-2 transition ${route().current('candidate.profile.show') ? 'bg-emerald-800/90 text-white border-l-4 border-emerald-400 -ml-3 pl-5 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]' : 'text-emerald-50/90 hover:bg-emerald-800'}`}
+                        className={`group flex items-center gap-3 rounded-md px-3 py-2 transition ${route().current('candidate.profile.show') ? 'bg-emerald-800/90 text-white ring-1 ring-emerald-400/20' : 'text-emerald-50/90 hover:bg-emerald-800'}`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 opacity-90"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/></svg>
                         <span>{t('nav.profile')}</span>
@@ -154,10 +161,14 @@ export default function AuthenticatedLayout({ header, children }) {
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 opacity-90"><path d="M3 4h18v2H3zm0 6h18v2H3zm0 6h18v2H3z"/></svg>
                         <span>{t('nav.browse')}</span>
                     </Link>
-                    <a className="group flex items-center gap-3 rounded-md px-3 py-2 text-emerald-50/90 transition hover:bg-emerald-800" href="#">
+                    <Link
+                        className={`group flex items-center gap-3 rounded-md px-3 py-2 transition ${route().current('applications.my') ? 'bg-emerald-800/90 text-white ring-1 ring-emerald-400/20' : 'text-emerald-50/90 hover:bg-emerald-800'}`}
+                        href={route('applications.my')}
+                        aria-current={route().current('applications.my') ? 'page' : undefined}
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 opacity-90"><path d="M4 4h16v2H4v12h7v2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm14 6h2v10h-2v-4h-4v-2h4V10zm-6 6H6v-2h6v2z"/></svg>
                         <span>{t('nav.applications')}</span>
-                    </a>
+                    </Link>
                 </nav>
                 <div className="mt-auto pt-6 text-xs text-emerald-200/80">Signed in as {user.name}</div>
             </aside>
@@ -481,14 +492,12 @@ export default function AuthenticatedLayout({ header, children }) {
                             <div className="px-4 py-6 text-sm text-white/60">{t('notifications.empty')}</div>
                         )}
                         {notifs.map((n) => (
-                            <div key={n.id} className="px-4 py-3 hover:bg-white/5">
+                            <div key={n.id} className="px-4 py-3 hover:bg-white/5 cursor-pointer" onClick={() => openNotifModal(n)}>
                                 <div className="text-sm font-medium">{n.data?.title || n.type}</div>
-                                <div className="text-xs text-white/70">{n.data?.message}</div>
+                                <div className="text-xs text-white/70 line-clamp-3">{n.data?.message}</div>
                                 <div className="mt-2 flex items-center gap-2">
-                                    <button onClick={() => markOneRead(n.id)} className="rounded px-2 py-1 text-xs text-white/80 hover:bg-white/10">Mark read</button>
-                                    {n.data?.link && (
-                                        <Link href={n.data.link} className="rounded px-2 py-1 text-xs text-emerald-400 hover:bg-white/10">View</Link>
-                                    )}
+                                    <button onClick={(e) => { e.stopPropagation(); markOneRead(n.id); }} className="rounded px-2 py-1 text-xs text-white/80 hover:bg-white/10">Mark read</button>
+                                    <button onClick={(e) => { e.stopPropagation(); openNotifModal(n); }} className="rounded px-2 py-1 text-xs text-emerald-400 hover:bg-white/10">View</button>
                                 </div>
                             </div>
                         ))}
@@ -496,6 +505,23 @@ export default function AuthenticatedLayout({ header, children }) {
                 </div>
             )}
             <ContactSupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
+            {/* Notification View Modal */}
+            {notifViewOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40" onClick={() => setNotifViewOpen(false)} />
+                    <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+                        {notifViewContent.title ? (
+                            <h3 className="mb-2 text-lg font-semibold text-gray-900">{notifViewContent.title}</h3>
+                        ) : null}
+                        <div className="whitespace-pre-wrap text-gray-800">
+                            {notifViewContent.message || '—'}
+                        </div>
+                        <div className="mt-4 flex justify-end">
+                            <button onClick={() => setNotifViewOpen(false)} className="h-10 rounded-md border border-gray-200 bg-white px-4 text-sm text-gray-700 hover:bg-gray-50">Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -14,12 +14,14 @@ class ApplicationStatusUpdated extends Notification
     public string $jobTitle;
     public string $status;
     public ?string $applicationId;
+    public ?string $reason;
 
-    public function __construct(string $jobTitle, string $status, ?string $applicationId = null)
+    public function __construct(string $jobTitle, string $status, ?string $applicationId = null, ?string $reason = null)
     {
         $this->jobTitle = $jobTitle;
         $this->status = $status;
         $this->applicationId = $applicationId;
+        $this->reason = $reason;
     }
 
     public function via(object $notifiable): array
@@ -30,14 +32,29 @@ class ApplicationStatusUpdated extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'title' => 'Application status updated',
-            'message' => "Your application for '{$this->jobTitle}' is now '{$this->status}'.",
+            'title' => '',
+            // Show only the admin-provided reason in the visible message
+            'message' => $this->reason ?? '',
             'link' => $this->applicationId ? route('dashboard') : null,
             'meta' => [
                 'job_title' => $this->jobTitle,
                 'status' => $this->status,
                 'application_id' => $this->applicationId,
+                'reason' => $this->reason,
             ],
         ];
+    }
+
+
+    protected function buildTitle(): string
+    {
+        $status = strtolower($this->status);
+        if (in_array($status, ['approved','selected'], true)) {
+            return 'Application approved';
+        }
+        if ($status === 'rejected') {
+            return 'Application rejected';
+        }
+        return 'Application status updated';
     }
 }
