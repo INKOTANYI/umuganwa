@@ -38,6 +38,28 @@ class ProfileCompletionController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
+        // Friendly guard: cap total upload payload to avoid php.ini post_max_size issues
+        $maxTotal = 45 * 1024 * 1024; // 45 MB
+        $totalBytes = 0;
+        try {
+            $totalBytes += $request->file('cv')?->getSize() ?? 0;
+            $totalBytes += $request->file('degree')?->getSize() ?? 0;
+            $totalBytes += $request->file('identity_doc')?->getSize() ?? 0;
+            if ($request->hasFile('certificates')) {
+                foreach ((array) $request->file('certificates') as $f) {
+                    $totalBytes += $f?->getSize() ?? 0;
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignore size detection errors
+        }
+        if ($totalBytes > $maxTotal) {
+            return back()->withErrors([
+                'cv' => 'Total upload exceeds 45MB. Please reduce file sizes or upload fewer certificates.',
+                'degree' => 'Total upload exceeds 45MB.',
+                'identity_doc' => 'Total upload exceeds 45MB.',
+            ])->withInput();
+        }
         $request->validate([
             'first_name' => ['required','string','max:255'],
             'last_name' => ['required','string','max:255'],
